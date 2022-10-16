@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <link href="https://fonts.googleapis.com/css?family=Jua&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+        <title>얼굴 MBTI 테스트</title>
+        <link rel="stylesheet" href="style.css" />
+        <!-- Go to www.addthis.com/dashboard to customize your tools -->
+        <script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-634b927d694ab83c"></script>
+
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-light nav-distance">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">얼굴 MBTI 테스트</a>
+                <button
+                    class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent"
+                    aria-controls="navbarSupportedContent"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation"
+                >
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="#">얼굴 MBTI 테스트</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <section class="section">
+            <h1 class="title">인공지능 MBTI 얼굴상 테스트</h1>
+            <h2 class="subtitle">나는 어떤 MBTI 처럼 생겼을까?</h2>
+        </section>
+        <section class="youtube">
+            <div class="youtube-cover">
+                <a href="" class="youtube-link"></a><img src="" alt="" class="youtube-icon" />
+            </div>
+        </section>
+        <script class="jsbin" src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+        <div class="mt-3 container file-upload">
+            <div class="image-upload-wrap">
+                <input class="file-upload-input" type="file" onchange="readURL(this);" accept="image/*"/>
+                <div class="drag-text">
+                    <img src="img/upload_img.svg" class="mt-5 pt-5 upload" />
+                    <h3 class="mb-5 pb-5 pt-4 upload-text">얼굴 사진을 올려놓거나 눌러서 업로드하세요!</h3>
+                </div>
+            </div>
+            <div class="file-upload-content">
+                <img class="file-upload-image" id="face-image" src="#" alt="your image" />
+                <div id="loading" class="animated bounce">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                    <p class="text-center">AI가 당신의 MBTI상을 분석중입니다.</p>
+                </div>
+                <p class="result-message"></p>
+                <!-- Go to www.addthis.com/dashboard to customize your tools -->
+                <div class="addthis_inline_share_toolbox"></div>
+                <div id="label-container" class="d-flex flex-column justify-content-around"></div>
+                <div class="pt-3 image-title-wrap">
+                    <button type="button p-2" class="try-again-btn" onclick="window.location.reload();">
+                    <span class="try-again-text">다른 사진으로 재시도</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <h5 class="mt-5 text-center">*사진은 절대 어디에도 저장되지 않습니다*</h5>
+        <footer class="footer pt-5 container d-flex justify-content-center">
+        <div>
+            <p>&copy; OKUKA 2022. All Rights Reserved. </p>
+        </div>
+    </footer>
+        <script>
+        function readURL(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    $('.image-upload-wrap').hide();
+                    $('#loading').show();
+                    $('.file-upload-image').attr('src', e.target.result);
+                    $('.file-upload-content').show();
+                    $('.image-title').html(input.files[0].name);
+                };
+                reader.readAsDataURL(input.files[0]);
+                init().then(function() {
+                    console.log("hello");
+                    predict();
+                    $('#loading').hide();
+                });
+                } else {
+                    removeUpload();
+                }
+            }
+            function removeUpload() {
+                $('.file-upload-input').replaceWith($('.file-upload-input').clone());
+                $('.file-upload-content').hide();
+                $('.image-upload-wrap').show();
+            }
+            $('.image-upload-wrap').bind('dragover', function () {
+                $('.image-upload-wrap').addClass('image-dropping');
+            });
+            $('.image-upload-wrap').bind('dragleave', function () {
+                $('.image-upload-wrap').removeClass('image-dropping');
+            });
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+        <script type="text/javascript">
+            const URL = 'https://teachablemachine.withgoogle.com/models/BDZ2gbhXf/';
+            let model, webcam, labelContainer, maxPredictions;
+            async function init() {
+                const modelURL = URL + 'model.json';
+                const metadataURL = URL + 'metadata.json';
+                // load the model and metadata
+                // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
+                // or files from your local hard drive
+                // Note: the pose library adds "tmImage" object to your window (window.tmImage)
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+                labelContainer = document.getElementById('label-container');
+                for (let i = 0; i < maxPredictions; i++) {
+                    // and class labels
+                    labelContainer.appendChild(document.createElement('div'));
+                }
+            }
+            // run the webcam image through the image model
+            async function predict() {
+                // predict can take in an image, video or canvas html element
+                var image = document.getElementById('face-image');
+                const prediction = await model.predict(image, false);
+                prediction.sort((a, b) => parseFloat(b.probability) - parseFloat(a.probability));
+                console.log(prediction[0].className);
+                var resultTitle, resultExplain, resultCeleb;
+                switch (prediction[0].className) {
+                    case 'ENFJ':
+                        resultTitle = 'ENFJ';
+                        resultExplain ='당신은 따뜻하고 적극적이며 책임감이 강하고 사교성이 풍부한 정의로운 사회운동가의 얼굴형입니다!';
+                        resultCeleb ='ENFJ 연예인: 에이프릴 이진솔,소녀시대 유리,걸스데이 유라,강다니엘,갓세븐 잭슨,아이콘 송윤형';  
+                        break;
+                    case 'ENFP':
+                        resultTitle = 'ENFP';
+                        resultExplain ='당신은 자유로운 사고를 갖고 있고 종종 분위기 메이커의 역활도 하는 재기발랄한 활동가의 얼굴형입니다!';
+                        resultCeleb = 'ENFP 연예인: 화사,박나래,이효리,뷔,조세호,송민호';
+                        break;
+                    case 'ENTJ':
+                        resultTitle = 'ENTJ';
+                        resultExplain = '당신은 넘치는 카리스마와 자신감으로 공통의 목표 실현을 위해 다른이들을 진두지휘하는 대담한 통솔자의 얼굴형입니다!';
+                        resultCeleb = 'ENTJ 연예인: 스윙스,유노윤호,이승기,소녀시대,아이린,티파니';
+                        break;
+                    case 'ENTP':
+                        resultTitle = 'ENTP';
+                        resultExplain ='당신은 반항을 일으킴으로써 군중을 선동하고 뜨거운 논쟁을 즐기는 변론가의 얼굴형입니다!';
+                        resultCeleb ='ENTP 연예인: 라미안,이영지,솔지,육성재,블락비 박경,신화 김동완';
+                        break;
+                    case 'ESFJ':
+                        resultTitle = 'ESFJ';
+                        resultExplain ='당신은 사람들을 행복하고 즐겁게 해주려고 노력하고, 승리와 명예를 불러오도록 팀을 이끄는 사교적인 외교관의 얼굴형입니다!';
+                        resultCeleb = 'ESFJ 연예인: 박보검, 슈퍼주니어 려욱, 슈퍼주니어 규현, 에이핑크 박초롱, 걸스데이 혜리, 오마이걸 효정';
+                        break;
+                    case 'ESFP':
+                        resultTitle = 'ESFP';
+                        resultExplain ='당신은 다른 유형과는 비교도 안 될 만큼 거부할 수 없는 매력을 소유하고 있는 자유로운 영혼 연예인의 얼굴형입니다!';
+                        resultCeleb = 'ESFP 연예인: 전소민, 에이프릴 채경, 소녀시대 수영, 위너 강승윤, 남주혁, 2PM 우영';
+                        break;
+                    case 'ESTJ':
+                        resultTitle = 'ESTJ';
+                        resultExplain ='당신은 정직하고 헌신적이며 위풍당당하며 올바른 길로 사람들을 인도하는 엄격한 관리자의 얼굴형입니다!';
+                        resultCeleb = 'ESTJ 연예인: 한채영, 송은이, 모모랜드 제인, 김구라, 허경영, 데프콘';
+                        break;
+                    case 'ESTP':
+                        resultTitle = 'ESTP';
+                        resultExplain ='당신은 직설적이면서도 주변사람을 웃게 만들며 주변의 이목을 끄는 것을 좋아하는 모험을 즐기는 사업가의 얼굴형입니다!';
+                        resultCeleb = 'ESTP 연예인: 나인뮤진스 경리, 블랙핑크 지수, 우주소녀 연정, 신동엽, NCT 성찬, 전현무';
+                        break;
+                    case 'INFJ':
+                        resultTitle = 'INFJ';
+                        resultExplain ='당신은 자아를 실현현하고 다른 사람을 도우며 세상에서 선을 실천하는 선의의 옹호자의 얼굴형입니다!';
+                        resultCeleb = 'INFJ 연예인: 닉쿤, 주창욱, 차은우, 걸스데이 민아, 여자친구 엄지, 소녀시대 태연';
+                        break;
+                    case 'INFP':
+                        resultTitle = 'INFP';
+                        resultExplain ='당신은 최악의 상황에서도 긍정적이고 더 나은 상황을 만들고자 노력하는 열정적인 중재자의 얼굴형입니다!';
+                        resultCeleb = 'INFP 연예인: 백예린, 트와이스 모모, 선미, 에릭남, 윤두준, 위너 이승훈';
+                        break;
+                    case 'INTJ':
+                        resultTitle = 'INTJ';
+                        resultExplain ='당신은 체스를 두는 듯한 정확하고 계산된 움직임과 풍부한 지식을 소유하고 있는 용의주도한 전략가의 얼굴형입니다!';
+                        resultCeleb = 'INTJ 연예인: 강동원, 에릭, 양세형, 보아, 공민지, 손나은';
+                        break;
+                    case 'INTP':
+                        resultTitle = 'INTP';
+                        resultExplain ='당신은 독창성과 창의력, 독특한 관점과 왕성한 지적호기심에 자부심을 갖고 있는 논리적인 사색가의 얼굴형입니다!';
+                        resultCeleb = 'INTP 연예인: 마마무 휘인, 에이핑크 정은지, 여자아이들 전소연, 엑소 세훈, 비투비 임현식, BTS 슈가';
+                        break;
+                    case 'ISFJ':
+                        resultTitle = 'ISFJ';
+                        resultExplain ='당신은 열정과 자애로움으로 타인과도 잘 어울려 일에 정진하는 용감한 수호자의 얼굴형 입니다!';
+                        resultCeleb = 'ISFJ 연예인: 트와이스 다현, 에이프릴 예나, 나르샤, 위너 김진우, 최강창민, 갓세븐 진영';
+                        break;
+                    case 'ISFP':
+                        resultTitle = 'ISFP';
+                        resultExplain ='당신은 실험적인 아름다움이나 행위를 통해 전통인 관습에 도전장을 내미는 호기심 많은 예술가의 얼굴형입니다!';
+                        resultCeleb = 'ISFP 연예인: 백현, 정국, 유재석, 에이핑크 윤보미, 여자아이들 수진, 트와이스 지효';
+                        break;
+                    case 'ISTJ':
+                        resultTitle = 'ISTJ';
+                        resultExplain ='당신은 청렴 결백하면서 실용적인 논리로 업무를 정확하고 신중하게 처리하는 청렴 결백한 논리주의자의 얼굴형입니다!';
+                        resultCeleb = 'ISTJ 연예인: 갓세븐 마크, 인피니트 성규, 차태현, 소녀시대 써니, 소녀시대 효연, 오마이걸 비니';
+                        break;
+                    case 'ISTP':
+                        resultTitle = 'ISTP';
+                        resultExplain ='당신은 직접 손으로 만지고 눈으로 보면서 주변 세상을 탐색하는 것을 좋아하는 만능 재주꾼의 얼굴형입니다!';
+                        resultCeleb = 'ISTP 연예인: 김종민, 홍진경, 트와이스 나연, 여자친구 은하, 인피니트 성규, 펜타곤 진호';
+                        break;
+                }
+                var title = "<div class='" + prediction[0].className + "-animal-title'>" + resultTitle + "</div>"
+            var explain = "<div class='animal-explain pt-2'>" + resultExplain + "</div>"
+            var celeb = "<div class='" + prediction[0].className + "-animal-celeb pt-2 pb-2'>" + resultCeleb + "</div>"
+            $('.result-message').html(title + explain + celeb);
+            var barWidth;
+            for (let i = 0; i < maxPredictions; i++) {
+                if (prediction[i].probability.toFixed(2) > 0.1) {
+                    barWidth = Math.round(prediction[i].probability.toFixed(2) * 100) + "%";
+                } else if (prediction[i].probability.toFixed(2) >= 0.01) {
+                    barWidth = "4%"
+                } else {
+                    barWidth = "2%"
+                }
+                var labelTitle;
+                switch (prediction[i].className) {
+                    case "ENFJ":
+                        labelTitle = "ENFJ"
+                        break;
+                    case "ENFP":
+                        labelTitle = "ENFP"
+                        break;
+                    case "ENTJ":
+                        labelTitle = "ENTJ"
+                        break;
+                    case "ENTP":
+                        labelTitle = "ENTP"
+                        break;
+                    case "ESFJ":
+                        labelTitle = "ESFJ"
+                        break;
+                    case "ESFP":
+                        labelTitle = "ESFP"
+                        break;
+                    case "ESTJ":
+                        labelTitle = "ESTJ"
+                        break;
+                    case "ESTP":
+                        labelTitle = "ESTP"
+                        break;
+                    case "INFJ":
+                        labelTitle = "INFJ"
+                        break;
+                    case "INFP":
+                        labelTitle = "INFP"
+                        break;
+                    case "INTJ":
+                        labelTitle = "INTJ"
+                        break;
+                    case "INTP":
+                        labelTitle = "INTP"
+                        break;
+                    case "ISFJ":
+                        labelTitle = "ISFJ"
+                        break;
+                    case "ISFP":
+                        labelTitle = "ISFP"
+                        break;
+                    case "ISTJ":
+                        labelTitle = "ISTJ"
+                        break;
+                    case "ISTP":
+                        labelTitle = "ISTP"
+                        break;
+                    
+                }
+                var label = "<div class='animal-label d-flex align-items-center'>" + labelTitle + "</div>"
+                var bar = "<div class='bar-container position-relative container'><div class='" + prediction[i].className + "-box'></div><div class='d-flex justify-content-center align-items-center " + prediction[i].className + "-bar' style='width: " + barWidth + "'><span class='d-block percent-text'>" + Math.round(prediction[i].probability.toFixed(2) * 100) + "%</span></div></div>"
+                labelContainer.childNodes[i].innerHTML = label + bar;
+                }
+            }
+        </script>
+    </body>
+    <!-- Copyright (c) 2022 by Aaron Vanston (https://codepen.io/aaronvanston/pen/yNYOXR)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+ -->
+</html>
